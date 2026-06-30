@@ -67,6 +67,14 @@ export type GeneratedSceneImage = {
 
 export type GeneratedVoice = {
   audio_url?: string;
+  segments?: GeneratedVoiceSegment[];
+  status: "success" | "failed";
+  error?: string;
+};
+
+export type GeneratedVoiceSegment = {
+  scene_number: number;
+  audio_url?: string;
   status: "success" | "failed";
   error?: string;
 };
@@ -196,6 +204,7 @@ export type GenerateImagesResponse = {
 
 export type GenerateVoiceRequest = {
   narration: string;
+  scenes?: NewsScene[];
   voice?: string;
 };
 

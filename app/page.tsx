@@ -226,7 +226,7 @@ export default function Home() {
       const response = await fetch("/api/voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ narration: state.script.narration })
+        body: JSON.stringify({ narration: state.script.narration, scenes: state.script.scenes })
       });
       const payload = (await response.json()) as GenerateVoiceResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || "음성 생성 실패");

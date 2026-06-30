@@ -77,7 +77,7 @@ export async function generateImageWithOpenAI(prompt: string) {
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || "이미지 생성에 실패했습니다.");
+    throw new Error(formatOpenAIError(message, "이미지 생성에 실패했습니다."));
   }
 
   const payload = (await response.json()) as {
@@ -115,10 +115,31 @@ export async function generateSpeechWithOpenAI(narration: string, voice = "alloy
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || "음성 생성에 실패했습니다.");
+    throw new Error(formatOpenAIError(message, "음성 생성에 실패했습니다."));
   }
 
   const arrayBuffer = await response.arrayBuffer();
   const base64 = Buffer.from(arrayBuffer).toString("base64");
   return `data:audio/mpeg;base64,${base64}`;
+}
+
+function formatOpenAIError(message: string, fallback: string) {
+  if (!message) return fallback;
+  try {
+    const payload = JSON.parse(message) as { error?: { code?: string; message?: string; type?: string } };
+    const code = payload.error?.code;
+    const detail = payload.error?.message || message;
+    if (code === "insufficient_quota" || detail.includes("quota")) {
+      return "OpenAI API 크레딧 또는 결제 한도를 초과했습니다. OpenAI Billing에서 크레딧/결제수단을 확인하거나 새 API 키를 넣어주세요.";
+    }
+    if (code === "invalid_api_key" || detail.includes("Incorrect API key")) {
+      return "OpenAI API 키가 올바르지 않습니다. .env.local 또는 Vercel 환경변수의 OPENAI_API_KEY를 확인해주세요.";
+    }
+    return detail;
+  } catch {
+    if (message.includes("quota")) {
+      return "OpenAI API 크레딧 또는 결제 한도를 초과했습니다. OpenAI Billing에서 크레딧/결제수단을 확인하거나 새 API 키를 넣어주세요.";
+    }
+    return message;
+  }
 }

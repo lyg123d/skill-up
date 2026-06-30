@@ -17,6 +17,11 @@ type LoadedScene = {
   endsAt: number;
 };
 
+type TimedAudioBuffer = {
+  startsAt: number;
+  buffer: AudioBuffer;
+};
+
 export async function renderShortsVideo({ script, images, audio }: RenderShortsVideoInput): Promise<GeneratedVideo> {
   if (typeof window === "undefined") {
     throw new Error("브라우저에서만 영상 렌더링을 실행할 수 있습니다.");
@@ -29,11 +34,18 @@ export async function renderShortsVideo({ script, images, audio }: RenderShortsV
     throw new Error("이 브라우저에서 YouTube 업로드용 WebM 영상을 만들 수 없습니다.");
   }
 
-  const audioBuffer = audio?.audio_url && audio.status === "success" ? await decodeAudio(audio.audio_url) : undefined;
   const scenes = buildTimeline(script.scenes, images);
+  const audioBuffers = await decodeVoiceAudio(audio, scenes);
   const renderDuration = Math.max(
     3,
-    Math.min(180, Math.max(script.total_duration_sec || 0, audioBuffer?.duration || 0, scenes.at(-1)?.endsAt || 0))
+    Math.min(
+      180,
+      Math.max(
+        script.total_duration_sec || 0,
+        scenes.at(-1)?.endsAt || 0,
+        ...audioBuffers.map((audioBuffer) => audioBuffer.startsAt + audioBuffer.buffer.duration)
+      )
+    )
   );
 
   const loadedScenes = await Promise.all(
@@ -52,7 +64,7 @@ export async function renderShortsVideo({ script, images, audio }: RenderShortsV
   }
 
   const videoStream = canvas.captureStream(FPS);
-  const audioSetup = audioBuffer ? await createAudioSetup(audioBuffer) : undefined;
+  const audioSetup = audioBuffers.length ? await createAudioSetup(audioBuffers) : undefined;
   const stream = new MediaStream([
     ...videoStream.getVideoTracks(),
     ...(audioSetup?.destination.stream.getAudioTracks() || [])
@@ -62,7 +74,7 @@ export async function renderShortsVideo({ script, images, audio }: RenderShortsV
     ctx,
     stream,
     audioContext: audioSetup?.context,
-    audioSource: audioSetup?.source,
+    audioSources: audioSetup?.sources,
     loadedScenes,
     script,
     duration: renderDuration,
@@ -81,7 +93,7 @@ export async function renderShortsVideo({ script, images, audio }: RenderShortsV
   };
 }
 
-async function createAudioSetup(audioBuffer: AudioBuffer) {
+async function createAudioSetup(audioBuffers: TimedAudioBuffer[]) {
   const AudioContextCtor = window.AudioContext || getWebkitAudioContext();
   if (!AudioContextCtor) {
     throw new Error("이 브라우저는 오디오 합성을 지원하지 않습니다.");
@@ -89,11 +101,14 @@ async function createAudioSetup(audioBuffer: AudioBuffer) {
 
   const context = new AudioContextCtor();
   await context.resume();
-  const source = context.createBufferSource();
   const destination = context.createMediaStreamDestination();
-  source.buffer = audioBuffer;
-  source.connect(destination);
-  return { context, source, destination };
+  const sources = audioBuffers.map((timedBuffer) => {
+    const source = context.createBufferSource();
+    source.buffer = timedBuffer.buffer;
+    source.connect(destination);
+    return { source, startsAt: timedBuffer.startsAt };
+  });
+  return { context, sources, destination };
 }
 
 function pickRecordingMimeType() {
@@ -117,6 +132,31 @@ async function decodeAudio(audioUrl: string) {
   } finally {
     void audioContext.close();
   }
+}
+
+async function decodeVoiceAudio(audio: GeneratedVoice | undefined, scenes: ReturnType<typeof buildTimeline>) {
+  if (!audio || audio.status !== "success") return [];
+
+  if (audio.segments?.length) {
+    const decoded = await Promise.all(
+      audio.segments
+        .filter((segment) => segment.status === "success" && segment.audio_url)
+        .map(async (segment) => {
+          const scene = scenes.find((entry) => entry.scene.scene_number === segment.scene_number);
+          return {
+            startsAt: scene?.startsAt || 0,
+            buffer: await decodeAudio(segment.audio_url as string)
+          };
+        })
+    );
+    return decoded;
+  }
+
+  if (audio.audio_url) {
+    return [{ startsAt: 0, buffer: await decodeAudio(audio.audio_url) }];
+  }
+
+  return [];
 }
 
 function getWebkitAudioContext() {
@@ -159,7 +199,7 @@ function recordCanvasStream({
   ctx,
   stream,
   audioContext,
-  audioSource,
+  audioSources,
   loadedScenes,
   script,
   duration,
@@ -168,7 +208,7 @@ function recordCanvasStream({
   ctx: CanvasRenderingContext2D;
   stream: MediaStream;
   audioContext?: AudioContext;
-  audioSource?: AudioBufferSourceNode;
+  audioSources?: Array<{ source: AudioBufferSourceNode; startsAt: number }>;
   loadedScenes: LoadedScene[];
   script: NewsShortsScript;
   duration: number;
@@ -210,7 +250,12 @@ function recordCanvasStream({
     drawFrame(ctx, loadedScenes, script, 0, duration);
     recorder.start(500);
     setTimeout(() => {
-      audioSource?.start();
+      if (audioContext && audioSources?.length) {
+        const baseTime = audioContext.currentTime;
+        audioSources.forEach((audioSource) => {
+          audioSource.source.start(baseTime + audioSource.startsAt);
+        });
+      }
       frameId = requestAnimationFrame(draw);
     }, delayMs);
     setTimeout(() => {

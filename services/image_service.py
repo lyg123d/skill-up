@@ -117,15 +117,17 @@ class LocalImageService:
         return (
             "text, letters, words, captions, subtitles, headlines, title, logo, watermark, sign, poster, "
             "label, interface text, qr code, infographic text, meme, cartoon, anime, CGI, poster layout, "
-            "surreal, distorted hands, extra fingers, blurry, low quality, duplicated objects, dark image, "
-            "black image, empty frame, overexposed, washed out, low contrast, copyrighted character"
+            "surreal, distorted hands, extra fingers, blurry, low quality, duplicated objects, "
+            "overexposed, washed out, low contrast, copyrighted character, empty frame"
         )
 
     def _prepare_prompt(self, prompt: str) -> str:
         cleaned = " ".join(prompt.replace("\r", " ").replace("\n", " ").split())
         cleaned = self._dedupe_clauses(cleaned, max_words=64)
         return (
-            f"{cleaned}. editorial news photo, documentary realism, clear focal subject, natural light, no text, no logo"
+            f"{cleaned}. photorealistic editorial news photograph, real-world scene, documentary realism, "
+            "clear focal subject, natural light, sharp details, believable colors, shallow depth of field, "
+            "no text, no logo, no illustration, no graphic design"
         )
 
     def _ensure_visible_image(self, image):
@@ -133,7 +135,7 @@ class LocalImageService:
         stat = ImageStat.Stat(rgb_image.convert("L"))
         mean_brightness = stat.mean[0]
         contrast = stat.stddev[0]
-        if mean_brightness < 48 or contrast < 10:
+        if mean_brightness < 12 and contrast < 4:
             raise ValueError("Generated image is too dark or low-contrast.")
         return rgb_image
 

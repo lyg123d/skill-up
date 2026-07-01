@@ -6,7 +6,7 @@ type PromptMessage = {
 };
 
 export const NEWS_IMAGE_PROMPT_RULE =
-  "9:16 photorealistic editorial news photo, one clear subject, documentary realism, natural light, realistic color, shallow depth of field, no text, no overlays.";
+  "9:16 photorealistic editorial news photo, one clear subject, documentary realism, natural light, realistic color, sharp focus, shallow depth of field, no text, no overlays, no illustration, no poster design.";
 
 export const NEWS_IMAGE_NEGATIVE_PROMPT =
   "text, letters, words, captions, subtitles, headlines, title, logo, watermark, sign, poster, label, interface text, qr code, infographic text, meme, illustration, cartoon, anime, CGI, surreal, distorted hands, extra fingers, blurry, low quality, duplicated objects, copyrighted character, real celebrity face";
@@ -17,12 +17,16 @@ export function buildRealisticNewsImagePrompt(
   const subject = scene.visual_description || scene.image_prompt || scene.subtitle || scene.scene_title || "";
   const concisePrompt = [
     subject,
-    "realistic editorial news photo",
+    "photorealistic editorial news photograph",
+    "real-world scene with visible people, objects, and environment",
     "documentary style",
     "clear focal subject",
     "natural light",
+    "realistic colors",
+    "sharp details",
     "no text",
-    "no logo"
+    "no logo",
+    "no illustration"
   ].filter(Boolean);
 
   return sanitizeImagePrompt(`${concisePrompt.join(", ")}. ${NEWS_IMAGE_PROMPT_RULE}`);

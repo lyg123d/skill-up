@@ -16,13 +16,35 @@ from PIL import Image, ImageDraw
 from services.image_service import image_service
 from services.tts_service import tts_service
 
+
+def _load_env_file(path: Path) -> None:
+    if not path.exists():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+PROJECT_ROOT = Path(os.getenv("LOCAL_MODEL_PROJECT_ROOT", Path(__file__).resolve().parents[1]))
+_load_env_file(PROJECT_ROOT / ".env.local")
+_load_env_file(PROJECT_ROOT / ".env")
+
 logging.basicConfig(level=os.getenv("LOCAL_MODEL_LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
-PROJECT_ROOT = Path(os.getenv("LOCAL_MODEL_PROJECT_ROOT", Path(__file__).resolve().parents[1]))
 UPLOAD_DIR = PROJECT_ROOT / "public" / "static" / "output" / "uploads"
 PUBLIC_URL_PREFIX = "/static/output/uploads"
-LLM_BACKEND_URL = os.getenv("LOCAL_LLM_BACKEND_URL", "http://localhost:11434/v1").rstrip("/")
+LLM_BACKEND_URL = os.getenv(
+    "LOCAL_LLM_BACKEND_URL",
+    "https://0hinapxjjmzn.shares.zrok.io/v1"
+).rstrip("/")
 
 app = FastAPI(title="News Shorts Local Model Service")
 

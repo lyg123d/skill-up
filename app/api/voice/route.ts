@@ -1,6 +1,9 @@
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { NextResponse } from "next/server";
 import type { GenerateVoiceRequest, GenerateVoiceResponse, GeneratedVoiceSegment } from "@/types/news";
 import { generateSpeechWithLocalModel } from "@/lib/localModels";
+import { generateSpeechWithExternalTTS } from "@/lib/tts";
 
 export const runtime = "nodejs";
 
@@ -24,7 +27,7 @@ export async function POST(request: Request) {
 
       for (const scene of body.scenes) {
         try {
-          const audio_url = await generateSpeechWithLocalModel(scene.narration || scene.subtitle, body.voice);
+          const audio_url = await generateSpeechAudioUrl(scene.narration || scene.subtitle, body.voice);
           segments.push({ scene_number: scene.scene_number, audio_url, status: "success" });
         } catch (error) {
           segments.push({
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
     }
 
     try {
-      const audio_url = await generateSpeechWithLocalModel(text, body.voice);
+      const audio_url = await generateSpeechAudioUrl(text, body.voice);
       const response: GenerateVoiceResponse = { voice: { audio_url, status: "success" } };
       return NextResponse.json(response);
     } catch (error) {
@@ -74,6 +77,19 @@ export async function POST(request: Request) {
   }
 }
 
+async function generateSpeechAudioUrl(text: string, voice?: string) {
+  if (process.env.LOCAL_TTS_API_URL?.trim()) {
+    try {
+      const audioBuffer = await generateSpeechWithExternalTTS(text);
+      return saveOrInlineAudio(audioBuffer);
+    } catch (error) {
+      console.error("[TTS] external API failed, falling back to local model:", error);
+    }
+  }
+
+  return generateSpeechWithLocalModel(text, voice);
+}
+
 function getTtsInputText(body: GenerateVoiceRequest) {
   const narration = body.script?.narration || body.narration;
   if (narration?.trim()) return narration.trim();
@@ -84,4 +100,20 @@ function getTtsInputText(body: GenerateVoiceRequest) {
     .filter((value): value is string => Boolean(value?.trim()))
     .join("\n")
     .trim();
+}
+
+function getGeneratedAudioDir() {
+  return path.join(process.cwd(), "public", "generated", "audio");
+}
+
+async function saveOrInlineAudio(audioBuffer: Buffer) {
+  try {
+    await mkdir(getGeneratedAudioDir(), { recursive: true });
+    const fileName = `voice-${Date.now()}.mp3`;
+    const filePath = path.join(getGeneratedAudioDir(), fileName);
+    await writeFile(filePath, audioBuffer);
+    return `/generated/audio/${fileName}`;
+  } catch {
+    return `data:audio/mpeg;base64,${audioBuffer.toString("base64")}`;
+  }
 }

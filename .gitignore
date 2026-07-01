@@ -4,6 +4,7 @@
 node_modules
 .next
 .npm-cache
+public/generated
 out
 dist
 coverage

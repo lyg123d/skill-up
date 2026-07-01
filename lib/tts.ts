@@ -1,5 +1,5 @@
 export async function generateSpeechWithExternalTTS(text: string) {
-  const endpoint = process.env.LOCAL_TTS_API_URL?.trim();
+  const endpoint = getExternalTtsEndpoint();
   if (!endpoint) {
     throw new Error("LOCAL_TTS_API_URL이 설정되지 않았습니다.");
   }
@@ -21,6 +21,10 @@ export async function generateSpeechWithExternalTTS(text: string) {
   }
 
   return Buffer.from(await response.arrayBuffer());
+}
+
+function getExternalTtsEndpoint() {
+  return (process.env.LOCAL_TTS_API_URL || "https://n3avtssi8lfm.shares.zrok.io/tts").trim();
 }
 
 async function readTtsError(response: Response) {

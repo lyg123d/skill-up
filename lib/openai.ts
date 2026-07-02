@@ -18,28 +18,45 @@ function stripJsonFence(value: string) {
 export async function generateJsonWithOpenAI<T>(messages: ChatMessage[], fallback: () => T): Promise<T> {
   const baseUrl = (process.env.LOCAL_MODEL_SERVICE_URL || DEFAULT_LOCAL_MODEL_SERVICE_URL).replace(/\/$/, "");
   const model = process.env.LOCAL_LLM_MODEL || DEFAULT_LOCAL_LLM_MODEL;
-  const response = await fetch(`${baseUrl}/chat`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.2,
-      messages
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        messages
+      })
+    });
+  } catch {
+    return fallback();
+  }
 
   if (!response.ok) {
     return fallback();
   }
 
-  const payload = (await response.json()) as {
+  let payload: {
     choices?: Array<{
       message?: { content?: string };
       text?: string;
     }>;
   };
+
+  try {
+    payload = (await response.json()) as {
+      choices?: Array<{
+        message?: { content?: string };
+        text?: string;
+      }>;
+    };
+  } catch {
+    return fallback();
+  }
+
   const raw = payload.choices?.[0]?.message?.content || payload.choices?.[0]?.text;
   if (!raw) {
     return fallback();

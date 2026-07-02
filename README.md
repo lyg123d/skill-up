@@ -45,20 +45,10 @@ Next.js 앱입니다.
 
 <img src="docs/assets/screenshot-brief-script.png" alt="핵심 요약 및 숏츠 스크립트" width="100%" />
 
-### 숏츠 미리보기 & 이미지·음성·영상 패키지
-9:16 캔버스 미리보기와 씬별 이미지·TTS 생성, 완성 영상 렌더링 컨트롤입니다.
-
-<img src="docs/assets/screenshot-video-builder.png" alt="숏츠 미리보기 및 영상 패키지" width="100%" />
-
 ### 씬 타임라인
 씬별 자막, 내레이션 문장, 이미지 프롬프트를 카드 단위로 확인하고 수정합니다.
 
 <img src="docs/assets/screenshot-scene-timeline.png" alt="씬 타임라인" width="100%" />
-
-### YouTube Shorts 업로드 & 복사·다운로드
-제목, 설명, 태그, 공개 범위를 확인한 뒤 YouTube에 바로 업로드하거나 패키지를 내려받습니다.
-
-<img src="docs/assets/screenshot-youtube-upload.png" alt="YouTube Shorts 업로드 패널" width="100%" />
 
 ---
 

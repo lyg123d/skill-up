@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { ExportPanel } from "@/components/ExportPanel";
 import { NewsBriefPanel } from "@/components/NewsBriefPanel";
@@ -58,6 +58,7 @@ export default function Home() {
     video: false
   });
   const [youtubeConnected, setYoutubeConnected] = useState(false);
+  const voiceRequestRef = useRef<AbortController | null>(null);
 
   const selectedSources = useMemo(() => {
     if (!state.selectedSourceId) return state.sources;
@@ -75,6 +76,12 @@ export default function Home() {
         window.localStorage.removeItem(STORAGE_KEY);
       }
     });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      voiceRequestRef.current?.abort();
+    };
   }, []);
 
   useEffect(() => {
@@ -240,7 +247,10 @@ export default function Home() {
   }
 
   async function generateVoice() {
-    if (!state.script) return;
+    if (!state.script || loading.voice) return;
+    voiceRequestRef.current?.abort();
+    const controller = new AbortController();
+    voiceRequestRef.current = controller;
     setError("");
     setLoading((prev) => ({ ...prev, voice: true }));
     setState((prev) => ({ ...prev, step: "generating_voice" }));
@@ -248,6 +258,7 @@ export default function Home() {
       const response = await fetch("/api/news/voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ script: state.script, narration: state.script.narration, scenes: state.script.scenes })
       });
       const payload = (await response.json()) as GenerateVoiceResponse & { error?: string };
@@ -259,10 +270,14 @@ export default function Home() {
         setError(voice.error || "음성 생성 실패");
       }
     } catch (event) {
+      if (event instanceof DOMException && event.name === "AbortError") return;
       setError(event instanceof Error ? event.message : "음성 생성 실패");
       setState((prev) => ({ ...prev, step: "error" }));
     } finally {
-      setLoading((prev) => ({ ...prev, voice: false }));
+      if (voiceRequestRef.current === controller) {
+        voiceRequestRef.current = null;
+        setLoading((prev) => ({ ...prev, voice: false }));
+      }
     }
   }
 

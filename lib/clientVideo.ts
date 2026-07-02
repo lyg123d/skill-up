@@ -19,6 +19,7 @@ type LoadedScene = {
 };
 
 type TimedAudioBuffer = {
+  sceneNumber?: number;
   startsAt: number;
   buffer: AudioBuffer;
 };
@@ -35,8 +36,10 @@ export async function renderShortsVideo({ script, images, audio, captions }: Ren
     throw new Error("이 브라우저에서 YouTube 업로드용 WebM 영상을 만들 수 없습니다.");
   }
 
-  const scenes = buildTimeline(script.scenes, images);
-  const audioBuffers = await decodeVoiceAudio(audio, scenes);
+  const baseScenes = buildTimeline(script.scenes, images);
+  const decodedAudioBuffers = await decodeVoiceAudio(audio, baseScenes);
+  const scenes = alignTimelineToTts(baseScenes, decodedAudioBuffers);
+  const audioBuffers = alignAudioToTimeline(decodedAudioBuffers, scenes);
   const renderDuration = Math.max(
     3,
     Math.min(
@@ -146,12 +149,13 @@ async function decodeVoiceAudio(audio: GeneratedVoice | undefined, scenes: Retur
         .map(async (segment) => {
           const scene = scenes.find((entry) => entry.scene.scene_number === segment.scene_number);
           return {
+            sceneNumber: segment.scene_number,
             startsAt: scene?.startsAt || 0,
             buffer: await decodeAudio(segment.audio_url as string)
           };
         })
     );
-    return decoded;
+    return decoded.sort((a, b) => a.startsAt - b.startsAt);
   }
 
   if (audio.audio_url) {
@@ -179,6 +183,50 @@ function buildTimeline(scenes: NewsScene[], images: GeneratedSceneImage[]) {
     elapsed += duration;
     return entry;
   });
+}
+
+function alignTimelineToTts(scenes: ReturnType<typeof buildTimeline>, audioBuffers: TimedAudioBuffer[]) {
+  if (!audioBuffers.some((audioBuffer) => audioBuffer.sceneNumber)) {
+    return scenes;
+  }
+
+  let elapsed = 0;
+  return scenes.map((scene) => {
+    const audioBuffer = audioBuffers.find((item) => item.sceneNumber === scene.scene.scene_number);
+    const duration = Math.max(1, scene.endsAt - scene.startsAt, audioBuffer?.buffer.duration || 0);
+    const alignedScene = {
+      ...scene,
+      startsAt: elapsed,
+      endsAt: elapsed + duration
+    };
+    elapsed += duration;
+    return alignedScene;
+  });
+}
+
+function alignAudioToTimeline(audioBuffers: TimedAudioBuffer[], scenes: ReturnType<typeof buildTimeline>) {
+  if (!audioBuffers.some((audioBuffer) => audioBuffer.sceneNumber)) {
+    return preventAudioOverlap(audioBuffers);
+  }
+
+  return audioBuffers.map((audioBuffer) => {
+    const scene = scenes.find((entry) => entry.scene.scene_number === audioBuffer.sceneNumber);
+    return {
+      ...audioBuffer,
+      startsAt: scene?.startsAt || audioBuffer.startsAt
+    };
+  });
+}
+
+function preventAudioOverlap(audioBuffers: TimedAudioBuffer[]) {
+  let nextAvailableAt = 0;
+  return audioBuffers
+    .sort((a, b) => a.startsAt - b.startsAt)
+    .map((audioBuffer) => {
+      const startsAt = Math.max(audioBuffer.startsAt, nextAvailableAt);
+      nextAvailableAt = startsAt + audioBuffer.buffer.duration;
+      return { ...audioBuffer, startsAt };
+    });
 }
 
 async function loadImage(src?: string) {
@@ -348,12 +396,14 @@ function drawSceneText(ctx: CanvasRenderingContext2D, scene: NewsScene, captions
   ctx.font = "900 54px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   drawWrappedText(ctx, scene.scene_title, 54, 865, VIDEO_WIDTH - 108, 64, 3);
 
-  ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
-  ctx.font = "700 28px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  drawWrappedText(ctx, scene.visual_description || scene.subtitle, 54, 1010, VIDEO_WIDTH - 108, 36, 2);
+  if (!captions.enabled) {
+    ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
+    ctx.font = "700 28px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+    drawWrappedText(ctx, scene.visual_description || scene.subtitle, 54, 1010, VIDEO_WIDTH - 108, 36, 2);
+  }
 
   if (captions.enabled) {
-    drawCaptionBand(ctx, scene.subtitle || scene.narration || scene.scene_title);
+    drawCaptionBand(ctx, scene.narration || scene.subtitle || scene.scene_title);
   }
 }
 

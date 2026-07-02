@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { CaptionSettings, GeneratedSceneImage, GeneratedVideo, GeneratedVoice, NewsShortsScript } from "@/types/news";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
@@ -32,10 +33,25 @@ export function VideoBuilderPanel({
   onDownloadPackage,
   onChangeCaptions
 }: VideoBuilderPanelProps) {
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const readyImageCount = images.filter((image) => image.status === "success" && image.image_url).length;
   const readyImages = Boolean(script?.scenes.length && readyImageCount >= script.scenes.length);
   const readyVoice = Boolean(voice?.status === "success" && voice.audio_url);
   const canRenderVideo = Boolean(script && readyImages);
+
+  useEffect(() => {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+  }, [voice?.audio_url]);
+
+  useEffect(() => {
+    const audio = previewAudioRef.current;
+    return () => {
+      audio?.pause();
+    };
+  }, []);
 
   return (
     <section className="section">
@@ -79,7 +95,7 @@ export function VideoBuilderPanel({
       {script && canRenderVideo && !readyVoice ? (
         <p className="hint">TTS 음성이 없어 무음 영상으로 생성됩니다. 음성이 필요하면 내레이션 음성 생성을 다시 시도하세요.</p>
       ) : null}
-      {voice?.audio_url ? <audio controls src={voice.audio_url} /> : null}
+      {voice?.audio_url ? <audio ref={previewAudioRef} controls src={voice.audio_url} /> : null}
       {video?.video_url ? (
         <div className="videoResult">
           <video controls src={video.video_url} />

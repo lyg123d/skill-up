@@ -43,7 +43,7 @@ UPLOAD_DIR = PROJECT_ROOT / "public" / "static" / "output" / "uploads"
 PUBLIC_URL_PREFIX = "/static/output/uploads"
 LLM_BACKEND_URL = os.getenv(
     "LOCAL_LLM_BACKEND_URL",
-    "https://0hinapxjjmzn.shares.zrok.io/v1"
+    "https://tw1uxml1imhq.shares.zrok.io/v1"
 ).rstrip("/")
 
 app = FastAPI(title="News Shorts Local Model Service")

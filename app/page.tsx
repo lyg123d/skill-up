@@ -43,7 +43,7 @@ const initialState: NewsStudioState = {
   sources: [],
   candidates: [],
   images: [],
-  captions: { enabled: true },
+  captions: { enabled: false },
   step: "idle"
 };
 
@@ -60,6 +60,7 @@ export default function Home() {
   });
   const [youtubeConnected, setYoutubeConnected] = useState(false);
   const voiceRequestRef = useRef<AbortController | null>(null);
+  const renderingRef = useRef(false);
 
   const selectedSources = useMemo(() => {
     if (!state.selectedSourceId) return state.sources;
@@ -271,6 +272,7 @@ export default function Home() {
       setState((prev) => ({
         ...prev,
         voice: singleTrackVoice,
+        video: undefined,
         step: singleTrackVoice.status === "success" ? "voice_ready" : "script_ready"
       }));
       if (singleTrackVoice.status === "failed") {
@@ -289,22 +291,25 @@ export default function Home() {
   }
 
   async function renderVideo() {
-    if (!state.script) return;
+    const voice = normalizeSingleTrackVoice(state.voice);
+    if (!state.script || !voice?.audio_url || renderingRef.current) return;
+    renderingRef.current = true;
     setError("");
     setLoading((prev) => ({ ...prev, video: true }));
-    setState((prev) => ({ ...prev, step: "rendering_video" }));
+    setState((prev) => ({ ...prev, video: undefined, captions: { enabled: false }, step: "rendering_video" }));
     try {
       const video = await renderShortsVideo({
         script: state.script,
         images: state.images,
-        audio: normalizeSingleTrackVoice(state.voice),
-        captions: state.captions
+        audio: voice,
+        captions: { enabled: false }
       });
       setState((prev) => ({ ...prev, video, step: "video_ready" }));
     } catch (event) {
       setError(event instanceof Error ? event.message : "영상 렌더링 실패");
       setState((prev) => ({ ...prev, step: "error" }));
     } finally {
+      renderingRef.current = false;
       setLoading((prev) => ({ ...prev, video: false }));
     }
   }

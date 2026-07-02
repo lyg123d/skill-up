@@ -23,7 +23,7 @@ type TimedAudioBuffer = {
   buffer: AudioBuffer;
 };
 
-export async function renderShortsVideo({ script, images, audio, captions }: RenderShortsVideoInput): Promise<GeneratedVideo> {
+export async function renderShortsVideo({ script, images, audio }: RenderShortsVideoInput): Promise<GeneratedVideo> {
   if (typeof window === "undefined") {
     throw new Error("브라우저에서만 영상 렌더링을 실행할 수 있습니다.");
   }
@@ -35,6 +35,7 @@ export async function renderShortsVideo({ script, images, audio, captions }: Ren
     throw new Error("이 브라우저에서 YouTube 업로드용 WebM 영상을 만들 수 없습니다.");
   }
 
+  const renderCaptions = { enabled: false };
   const scenes = buildTimeline(script.scenes, images);
   const audioBuffers = await decodeVoiceAudio(audio);
   const renderDuration = Math.max(
@@ -78,7 +79,7 @@ export async function renderShortsVideo({ script, images, audio, captions }: Ren
     audioSources: audioSetup?.sources,
     loadedScenes,
     script,
-    captions: captions || { enabled: true },
+    captions: renderCaptions,
     duration: renderDuration,
     mimeType
   });

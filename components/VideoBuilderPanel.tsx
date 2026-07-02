@@ -23,7 +23,6 @@ export function VideoBuilderPanel({
   images,
   voice,
   video,
-  captions,
   loadingImages,
   loadingVoice,
   loadingVideo,
@@ -37,7 +36,14 @@ export function VideoBuilderPanel({
   const readyImageCount = images.filter((image) => image.status === "success" && image.image_url).length;
   const readyImages = Boolean(script?.scenes.length && readyImageCount >= script.scenes.length);
   const readyVoice = Boolean(voice?.status === "success" && voice.audio_url);
-  const canRenderVideo = Boolean(script && readyImages);
+  const canRenderVideo = Boolean(script && readyImages && readyVoice);
+
+  function stopPreviewAudio() {
+    const audio = previewAudioRef.current;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+  }
 
   useEffect(() => {
     const audio = previewAudioRef.current;
@@ -64,11 +70,25 @@ export function VideoBuilderPanel({
           {loadingImages ? <LoadingSpinner /> : null}
           씬별 이미지 생성
         </button>
-        <button type="button" onClick={onGenerateVoice} disabled={!script || loadingVoice}>
+        <button
+          type="button"
+          onClick={() => {
+            stopPreviewAudio();
+            onGenerateVoice();
+          }}
+          disabled={!script || loadingVoice}
+        >
           {loadingVoice ? <LoadingSpinner /> : null}
           내레이션 음성 생성
         </button>
-        <button type="button" onClick={onRenderVideo} disabled={!canRenderVideo || loadingVideo}>
+        <button
+          type="button"
+          onClick={() => {
+            stopPreviewAudio();
+            onRenderVideo();
+          }}
+          disabled={!canRenderVideo || loadingVideo}
+        >
           {loadingVideo ? <LoadingSpinner /> : null}
           완성 영상 생성
         </button>
@@ -83,17 +103,15 @@ export function VideoBuilderPanel({
         <label className="checkField">
           <input
             type="checkbox"
-            checked={captions.enabled}
-            onChange={(event) => onChangeCaptions({ enabled: event.target.checked })}
+            checked={false}
+            disabled
+            onChange={() => onChangeCaptions({ enabled: false })}
           />
-          자막 번인 포함
+          자막 번인 제외
         </label>
       </div>
       {script && !canRenderVideo ? (
-        <p className="hint">완성 영상은 모든 씬 이미지가 준비된 뒤 생성할 수 있습니다. TTS가 실패하면 무음 영상으로 생성됩니다.</p>
-      ) : null}
-      {script && canRenderVideo && !readyVoice ? (
-        <p className="hint">TTS 음성이 없어 무음 영상으로 생성됩니다. 음성이 필요하면 내레이션 음성 생성을 다시 시도하세요.</p>
+        <p className="hint">완성 영상은 모든 씬 이미지와 단일 TTS 음성이 준비된 뒤 생성할 수 있습니다.</p>
       ) : null}
       {voice?.audio_url ? <audio ref={previewAudioRef} controls src={voice.audio_url} /> : null}
       {video?.video_url ? (

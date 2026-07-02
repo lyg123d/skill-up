@@ -1,4 +1,4 @@
-import type { GeneratedSceneImage, GeneratedVideo, GeneratedVoice, NewsScene, NewsShortsScript } from "@/types/news";
+import type { CaptionSettings, GeneratedSceneImage, GeneratedVideo, GeneratedVoice, NewsScene, NewsShortsScript } from "@/types/news";
 
 const VIDEO_WIDTH = 720;
 const VIDEO_HEIGHT = 1280;
@@ -8,6 +8,7 @@ type RenderShortsVideoInput = {
   script: NewsShortsScript;
   images: GeneratedSceneImage[];
   audio?: GeneratedVoice;
+  captions?: CaptionSettings;
 };
 
 type LoadedScene = {
@@ -22,7 +23,7 @@ type TimedAudioBuffer = {
   buffer: AudioBuffer;
 };
 
-export async function renderShortsVideo({ script, images, audio }: RenderShortsVideoInput): Promise<GeneratedVideo> {
+export async function renderShortsVideo({ script, images, audio, captions }: RenderShortsVideoInput): Promise<GeneratedVideo> {
   if (typeof window === "undefined") {
     throw new Error("브라우저에서만 영상 렌더링을 실행할 수 있습니다.");
   }
@@ -77,6 +78,7 @@ export async function renderShortsVideo({ script, images, audio }: RenderShortsV
     audioSources: audioSetup?.sources,
     loadedScenes,
     script,
+    captions: captions || { enabled: true },
     duration: renderDuration,
     mimeType
   });
@@ -202,6 +204,7 @@ function recordCanvasStream({
   audioSources,
   loadedScenes,
   script,
+  captions,
   duration,
   mimeType
 }: {
@@ -211,6 +214,7 @@ function recordCanvasStream({
   audioSources?: Array<{ source: AudioBufferSourceNode; startsAt: number }>;
   loadedScenes: LoadedScene[];
   script: NewsShortsScript;
+  captions: CaptionSettings;
   duration: number;
   mimeType: string;
 }) {
@@ -241,13 +245,13 @@ function recordCanvasStream({
 
     const draw = () => {
       const elapsed = Math.max(0, (performance.now() - startedAt) / 1000);
-      drawFrame(ctx, loadedScenes, script, Math.min(elapsed, duration), duration);
+      drawFrame(ctx, loadedScenes, script, captions, Math.min(elapsed, duration), duration);
       if (elapsed <= duration + 0.1) {
         frameId = requestAnimationFrame(draw);
       }
     };
 
-    drawFrame(ctx, loadedScenes, script, 0, duration);
+    drawFrame(ctx, loadedScenes, script, captions, 0, duration);
     recorder.start(500);
     setTimeout(() => {
       if (audioContext && audioSources?.length) {
@@ -270,6 +274,7 @@ function drawFrame(
   ctx: CanvasRenderingContext2D,
   loadedScenes: LoadedScene[],
   script: NewsShortsScript,
+  captions: CaptionSettings,
   elapsed: number,
   duration: number
 ) {
@@ -279,7 +284,7 @@ function drawFrame(
   drawOverlay(ctx);
   drawTopChrome(ctx, script.title, elapsed, duration);
   if (scene) {
-    drawSceneText(ctx, scene.scene);
+    drawSceneText(ctx, scene.scene, captions);
   }
   drawFooter(ctx, script.source_summary);
 }
@@ -334,24 +339,51 @@ function drawTopChrome(ctx: CanvasRenderingContext2D, title: string, elapsed: nu
   roundRect(ctx, 54, 154, Math.max(16, barWidth * Math.min(1, elapsed / duration)), 8, 999);
 }
 
-function drawSceneText(ctx: CanvasRenderingContext2D, scene: NewsScene) {
+function drawSceneText(ctx: CanvasRenderingContext2D, scene: NewsScene, captions: CaptionSettings) {
   ctx.fillStyle = "#ffcf70";
   ctx.font = "900 30px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   ctx.fillText(`SCENE ${scene.scene_number}`, 54, 790);
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 54px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  drawWrappedText(ctx, scene.subtitle || scene.scene_title, 54, 865, VIDEO_WIDTH - 108, 64, 4);
+  drawWrappedText(ctx, scene.scene_title, 54, 865, VIDEO_WIDTH - 108, 64, 3);
 
   ctx.fillStyle = "rgba(255, 255, 255, 0.86)";
   ctx.font = "700 28px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
-  drawWrappedText(ctx, scene.scene_title, 54, 1135, VIDEO_WIDTH - 108, 36, 2);
+  drawWrappedText(ctx, scene.visual_description || scene.subtitle, 54, 1010, VIDEO_WIDTH - 108, 36, 2);
+
+  if (captions.enabled) {
+    drawCaptionBand(ctx, scene.subtitle || scene.narration || scene.scene_title);
+  }
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, sourceSummary: string) {
   ctx.fillStyle = "rgba(255, 255, 255, 0.76)";
   ctx.font = "600 20px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
   drawWrappedText(ctx, sourceSummary || "출처 확인 필요", 54, 1210, VIDEO_WIDTH - 108, 26, 2);
+}
+
+function drawCaptionBand(ctx: CanvasRenderingContext2D, text: string) {
+  const caption = normalizeCaptionText(text);
+  if (!caption) return;
+
+  const x = 42;
+  const y = 1084;
+  const width = VIDEO_WIDTH - 84;
+  const height = 92;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.62)";
+  roundRect(ctx, x, y, width, height, 26);
+
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, 26);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 32px system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+  drawWrappedText(ctx, caption, x + 24, y + 38, width - 48, 34, 2);
 }
 
 function drawWrappedText(
@@ -409,6 +441,10 @@ function tokenize(text: string) {
   const words = normalized.split(/(\s+)/).filter(Boolean);
   if (words.length > 1) return words;
   return Array.from(normalized);
+}
+
+function normalizeCaptionText(text: string) {
+  return text.replace(/\s+/g, " ").trim();
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {

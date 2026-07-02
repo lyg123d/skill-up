@@ -42,6 +42,7 @@ const initialState: NewsStudioState = {
   sources: [],
   candidates: [],
   images: [],
+  captions: { enabled: true },
   step: "idle"
 };
 
@@ -271,7 +272,12 @@ export default function Home() {
     setLoading((prev) => ({ ...prev, video: true }));
     setState((prev) => ({ ...prev, step: "rendering_video" }));
     try {
-      const video = await renderShortsVideo({ script: state.script, images: state.images, audio: state.voice });
+      const video = await renderShortsVideo({
+        script: state.script,
+        images: state.images,
+        audio: state.voice,
+        captions: state.captions
+      });
       setState((prev) => ({ ...prev, video, step: "video_ready" }));
     } catch (event) {
       setError(event instanceof Error ? event.message : "영상 렌더링 실패");
@@ -445,6 +451,7 @@ export default function Home() {
             images={state.images}
             voice={state.voice}
             video={state.video}
+            captions={state.captions}
             loadingImages={loading.images}
             loadingVoice={loading.voice}
             loadingVideo={loading.video}
@@ -452,6 +459,7 @@ export default function Home() {
             onGenerateVoice={generateVoice}
             onRenderVideo={renderVideo}
             onDownloadPackage={downloadPackage}
+            onChangeCaptions={(captions) => setState((prev) => ({ ...prev, captions }))}
           />
         </div>
         <YouTubeUploadPanel

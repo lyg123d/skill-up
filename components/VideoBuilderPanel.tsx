@@ -1,4 +1,4 @@
-import type { GeneratedSceneImage, GeneratedVideo, GeneratedVoice, NewsShortsScript } from "@/types/news";
+import type { CaptionSettings, GeneratedSceneImage, GeneratedVideo, GeneratedVoice, NewsShortsScript } from "@/types/news";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 type VideoBuilderPanelProps = {
@@ -6,6 +6,7 @@ type VideoBuilderPanelProps = {
   images: GeneratedSceneImage[];
   voice?: GeneratedVoice;
   video?: GeneratedVideo;
+  captions: CaptionSettings;
   loadingImages: boolean;
   loadingVoice: boolean;
   loadingVideo: boolean;
@@ -13,6 +14,7 @@ type VideoBuilderPanelProps = {
   onGenerateVoice: () => void;
   onRenderVideo: () => void;
   onDownloadPackage: () => void;
+  onChangeCaptions: (captions: CaptionSettings) => void;
 };
 
 export function VideoBuilderPanel({
@@ -20,13 +22,15 @@ export function VideoBuilderPanel({
   images,
   voice,
   video,
+  captions,
   loadingImages,
   loadingVoice,
   loadingVideo,
   onGenerateImages,
   onGenerateVoice,
   onRenderVideo,
-  onDownloadPackage
+  onDownloadPackage,
+  onChangeCaptions
 }: VideoBuilderPanelProps) {
   const readyImageCount = images.filter((image) => image.status === "success" && image.image_url).length;
   const readyImages = Boolean(script?.scenes.length && readyImageCount >= script.scenes.length);
@@ -60,6 +64,14 @@ export function VideoBuilderPanel({
         <span>이미지 {readyImageCount}/{script?.scenes.length || 0}</span>
         <span>음성 {voice?.status || "대기"}</span>
         <span>영상 {video?.status || "대기"}</span>
+        <label className="checkField">
+          <input
+            type="checkbox"
+            checked={captions.enabled}
+            onChange={(event) => onChangeCaptions({ enabled: event.target.checked })}
+          />
+          자막 번인 포함
+        </label>
       </div>
       {script && !canRenderVideo ? (
         <p className="hint">완성 영상은 모든 씬 이미지가 준비된 뒤 생성할 수 있습니다. TTS가 실패하면 무음 영상으로 생성됩니다.</p>

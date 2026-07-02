@@ -90,6 +90,10 @@ export type GeneratedVideo = {
   error?: string;
 };
 
+export type CaptionSettings = {
+  enabled: boolean;
+};
+
 export type YouTubePrivacyStatus = "private" | "unlisted" | "public";
 
 export type YouTubeUploadMetadata = {
@@ -251,5 +255,6 @@ export type NewsStudioState = {
   images: GeneratedSceneImage[];
   voice?: GeneratedVoice;
   video?: GeneratedVideo;
+  captions: CaptionSettings;
   step: NewsGenerationStep;
 };

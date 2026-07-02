@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/screenshot-hero.png" alt="News Shorts Studio hero banner" width="100%" />
+  <img src="docs/assets/readme-top-banner.png" alt="News Shorts Studio hero banner" width="100%" />
 
   <h1>News Shorts Studio</h1>
   <p>

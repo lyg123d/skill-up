@@ -35,20 +35,35 @@ Next.js 앱입니다.
 
 ## Screenshots
 
-### 스튜디오 메인
-뉴스 입력 패널과 뉴스 후보 카드, 제작 흐름 스테퍼를 한 화면에서 확인합니다.
+### 배포된 스튜디오 홈
+배포 서버에서 뉴스 제작 워크플로우와 현재 스튜디오 상태를 확인할 수 있습니다.
 
-<img src="docs/assets/screenshot-studio.png" alt="스튜디오 메인 화면" width="100%" />
+<img src="docs/assets/screenshots/landing-status.png" alt="배포된 News Shorts Studio 홈 화면" width="100%" />
+
+### 뉴스 입력
+Text, URL, Keyword 방식으로 뉴스 원문이나 기사 URL을 입력하고 카테고리, 톤, 영상 길이, 타깃을 설정합니다.
+
+<img src="docs/assets/screenshots/news-input-url.png" alt="뉴스 URL 입력 화면" width="100%" />
+
+### 제작 흐름과 후보 상태
+뉴스 입력부터 후보 확인, 브리프, 스크립트, 이미지, TTS, 영상 렌더링까지 한 화면에서 순서대로 처리합니다.
+
+<img src="docs/assets/screenshots/workflow-input.png" alt="숏츠 제작 흐름과 뉴스 후보 화면" width="100%" />
 
 ### 핵심 요약 & 숏츠 스크립트
 브리프 패널과 스크립트 패널이 나란히 열려 내레이션 흐름을 바로 편집할 수 있습니다.
 
-<img src="docs/assets/screenshot-brief-script.png" alt="핵심 요약 및 숏츠 스크립트" width="100%" />
+<img src="docs/assets/screenshots/brief-script-panels.png" alt="핵심 요약 및 숏츠 스크립트" width="100%" />
 
-### 씬 타임라인
-씬별 자막, 내레이션 문장, 이미지 프롬프트를 카드 단위로 확인하고 수정합니다.
+### 씬 타임라인과 영상 패키지
+씬별 이미지, 내레이션, 이미지 프롬프트, 9:16 미리보기와 영상 생성 패키지를 확인합니다.
 
-<img src="docs/assets/screenshot-scene-timeline.png" alt="씬 타임라인" width="100%" />
+<img src="docs/assets/screenshots/studio-timeline.png" alt="씬 타임라인과 영상 패키지 화면" width="100%" />
+
+### 빈 상태 화면
+아직 브리프와 스크립트가 없을 때 다음 작업을 안내하는 빈 상태 UI입니다.
+
+<img src="docs/assets/screenshots/workflow-empty-state.png" alt="브리프, 스크립트, 씬 타임라인 빈 상태 화면" width="100%" />
 
 ---
 

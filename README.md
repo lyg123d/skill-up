@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/assets/readme-hero.png" alt="News Shorts Studio hero banner" width="100%" />
+  <img src="docs/assets/screenshot-hero.png" alt="News Shorts Studio hero banner" width="100%" />
 
   <h1>News Shorts Studio</h1>
   <p>
@@ -32,6 +32,35 @@ Next.js 앱입니다.
 텍스트 붙여넣기, 기사 URL, 키워드 입력을 받아 브리프와 숏츠 스크립트를 만들고,
 이미지와 TTS를 생성한 뒤 브라우저에서 9:16 WebM 영상을 렌더링합니다. YouTube
 업로드는 Google OAuth와 resumable upload 흐름을 통해 처리합니다.
+
+## Screenshots
+
+### 스튜디오 메인
+뉴스 입력 패널과 뉴스 후보 카드, 제작 흐름 스테퍼를 한 화면에서 확인합니다.
+
+<img src="docs/assets/screenshot-studio.png" alt="스튜디오 메인 화면" width="100%" />
+
+### 핵심 요약 & 숏츠 스크립트
+브리프 패널과 스크립트 패널이 나란히 열려 내레이션 흐름을 바로 편집할 수 있습니다.
+
+<img src="docs/assets/screenshot-brief-script.png" alt="핵심 요약 및 숏츠 스크립트" width="100%" />
+
+### 숏츠 미리보기 & 이미지·음성·영상 패키지
+9:16 캔버스 미리보기와 씬별 이미지·TTS 생성, 완성 영상 렌더링 컨트롤입니다.
+
+<img src="docs/assets/screenshot-video-builder.png" alt="숏츠 미리보기 및 영상 패키지" width="100%" />
+
+### 씬 타임라인
+씬별 자막, 내레이션 문장, 이미지 프롬프트를 카드 단위로 확인하고 수정합니다.
+
+<img src="docs/assets/screenshot-scene-timeline.png" alt="씬 타임라인" width="100%" />
+
+### YouTube Shorts 업로드 & 복사·다운로드
+제목, 설명, 태그, 공개 범위를 확인한 뒤 YouTube에 바로 업로드하거나 패키지를 내려받습니다.
+
+<img src="docs/assets/screenshot-youtube-upload.png" alt="YouTube Shorts 업로드 패널" width="100%" />
+
+---
 
 ## Highlights
 

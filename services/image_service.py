@@ -75,13 +75,13 @@ class LocalImageService:
                 image = self.pipe(
                     prompt=prompt,
                     negative_prompt=self._negative_prompt(),
-                    width=512,
-                    height=512,
-                    num_inference_steps=4,
-                    guidance_scale=1.5,
+                    width=384,
+                    height=384,
+                    num_inference_steps=3,
+                    guidance_scale=1.2,
                 ).images[0]
             image = self._ensure_visible_image(image)
-            image.save(output_path)
+            image.save(output_path, format="PNG", optimize=False, compress_level=9)
             return output_path
         except RuntimeError as error:
             message = str(error).lower()
@@ -99,13 +99,13 @@ class LocalImageService:
             image = self.pipe(
                 prompt=self._prepare_prompt(prompt),
                 negative_prompt=self._negative_prompt(),
-                width=512,
-                height=512,
-                num_inference_steps=4,
-                guidance_scale=1.5,
+                width=320,
+                height=320,
+                num_inference_steps=2,
+                guidance_scale=1.0,
             ).images[0]
         image = self._ensure_visible_image(image)
-        image.save(output_path)
+        image.save(output_path, format="PNG", optimize=False, compress_level=9)
         return output_path
 
     def clear_cache(self) -> None:
@@ -123,11 +123,9 @@ class LocalImageService:
 
     def _prepare_prompt(self, prompt: str) -> str:
         cleaned = " ".join(prompt.replace("\r", " ").replace("\n", " ").split())
-        cleaned = self._dedupe_clauses(cleaned, max_words=64)
+        cleaned = self._dedupe_clauses(cleaned, max_words=32)
         return (
-            f"{cleaned}. photorealistic editorial news photograph, real-world scene, documentary realism, "
-            "clear focal subject, natural light, sharp details, believable colors, shallow depth of field, "
-            "no text, no logo, no illustration, no graphic design"
+            f"{cleaned}. simple news image, basic composition, soft detail, flat lighting, no text, no logo"
         )
 
     def _ensure_visible_image(self, image):
